@@ -1,47 +1,65 @@
-from flask import Flask, render_template, request
+
+import streamlit as st
+
+import tensorflow as tf
+
+
+
+@st.cache(allow_output_mutation=True)
+
+def load_model():
+
+  model=tf.keras.models.load_model('CNN_Model_7.h5')
+
+  return model
+
+model=load_model()
+
+st.write("""
+
+# Multi-Weather Classifier"""
+
+)
+
+file=st.file_uploader("Upload your Image",type=["jpg","png"])
+
+
+
+import cv2
+
+from PIL import Image,ImageOps
+
 import numpy as np
-import cv2 as cv
-from tensorflow.keras import models
 
-app = Flask(__name__, template_folder='C:/Users/tipqc/Desktop/DELETE AFTER/')
+def import_and_predict(image_data,model):
 
-# Load the pre-trained model
-model = models.load_model('CNN_Model_7.h5')
+    size=(64,64)
 
-# Class names for CIFAR-10
-class_names = ['Rain', 'Cloudy', 'Sunrise', 'Shine']
+    image=ImageOps.fit(image_data,size,Image.ANTIALIAS)
 
+    img=np.asarray(image)
 
-def preprocess_image(img_path):
-    img = cv.imread(img_path)
-    img = cv.resize(img, (100, 100))
-    img = img / 255.0
-    img = img[None, :]
-    return img
+    img_reshape=img[np.newaxis,...]
 
+    prediction=model.predict(img_reshape)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        # Handle the uploaded image
-        file = request.files['file']
-        if file:
-            # Save the uploaded image
-            img_path = 'uploads/uploaded_image.png'
-            file.save(img_path)
+    return prediction
 
-            # Preprocess the image
-            img = preprocess_image(img_path)
+if file is None:
 
-            # Make a prediction
-            prediction = model.predict(img)
-            index = np.argmax(prediction)
-            result = class_names[index]
+    st.text("Please upload an image file")
 
-            return render_template("index.html", result=result, image_path=img_path)
+else:
 
-    return render_template("index.html", result=None, image_path=None)
+    image=Image.open(file)
 
+    st.image(image,use_column_width=True)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    prediction=import_and_predict(image,model)
+
+    class_names=['Sunrise', 'Shine', 'Rain', 'Cloudy']
+
+    string="OUTPUT : "+class_names[np.argmax(prediction)]
+
+    st.success(string)
+
